@@ -1,12 +1,14 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { fetchMissions } from '../api/missions';
 import { Mission } from '../types/Mission';
 
 interface MissionsContextValue {
   missions: Mission[];
   loading: boolean;
+  refreshing: boolean;
   error: string | null;
   toggleMission: (id: string) => void;
+  refresh: () => void;
 }
 
 const MissionsContext = createContext<MissionsContextValue | undefined>(undefined);
@@ -14,13 +16,29 @@ const MissionsContext = createContext<MissionsContextValue | undefined>(undefine
 export function MissionsProvider({ children }: { children: ReactNode }) {
   const [missions, setMissions] = useState<Mission[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  function loadMissions(isRefresh: boolean) {
+    if (isRefresh) setRefreshing(true);
     fetchMissions()
-      .then((data) => setMissions(data))
+      .then((data) => {
+        setMissions(data);
+        setError(null);
+      })
       .catch(() => setError('No se pudieron cargar las misiones'))
-      .finally(() => setLoading(false));
+      .finally(() => {
+        setLoading(false);
+        setRefreshing(false);
+      });
+  }
+
+  useEffect(() => {
+    loadMissions(false);
+  }, []);
+
+  const refresh = useCallback(() => {
+    loadMissions(true);
   }, []);
 
   function toggleMission(id: string) {
@@ -30,7 +48,7 @@ export function MissionsProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <MissionsContext.Provider value={{ missions, loading, error, toggleMission }}>
+    <MissionsContext.Provider value={{ missions, loading, refreshing, error, toggleMission, refresh }}>
       {children}
     </MissionsContext.Provider>
   );

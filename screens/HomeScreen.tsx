@@ -1,4 +1,4 @@
-import { View, Text, FlatList, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
+import { View, Text, FlatList, StyleSheet, Pressable, ActivityIndicator, RefreshControl } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -10,7 +10,7 @@ type HomeNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 
 export default function HomeScreen() {
   const { t, i18n } = useTranslation();
-  const { missions, loading, error } = useMissions();
+  const { missions, loading, refreshing, error, refresh } = useMissions();
   const navigation = useNavigation<HomeNavigationProp>();
 
   const totalPoints = missions
@@ -37,6 +37,7 @@ export default function HomeScreen() {
     );
   }
 
+  
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -57,6 +58,9 @@ export default function HomeScreen() {
           />
         )}
         contentContainerStyle={styles.list}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={refresh} colors={['#2e7d32']} />
+        }
       />
     </View>
   );
