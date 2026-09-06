@@ -1,31 +1,21 @@
-import { useState, useEffect } from 'react';
 import { View, Text, FlatList, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { fetchMissions } from '../api/missions';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useMissions } from '../context/MissionsContext';
 import { Mission } from '../types/Mission';
+import type { RootStackParamList } from '../App';
+
+type HomeNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 
 export default function HomeScreen() {
   const { t, i18n } = useTranslation();
-  const [missions, setMissions] = useState<Mission[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetchMissions()
-      .then((data) => setMissions(data))
-      .catch(() => setError('No se pudieron cargar las misiones'))
-      .finally(() => setLoading(false));
-  }, []); // se ejecuta una sola vez, al montar la pantalla
+  const { missions, loading, error } = useMissions();
+  const navigation = useNavigation<HomeNavigationProp>();
 
   const totalPoints = missions
     .filter((m) => m.completed)
     .reduce((sum, m) => sum + m.points, 0);
-
-  function toggleMission(id: string) {
-    setMissions((prev) =>
-      prev.map((m) => (m.id === id ? { ...m, completed: !m.completed } : m))
-    );
-  }
 
   function toggleLanguage() {
     i18n.changeLanguage(i18n.language === 'es' ? 'en' : 'es');
@@ -61,7 +51,10 @@ export default function HomeScreen() {
         data={missions}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <MissionCard mission={item} onToggle={() => toggleMission(item.id)} />
+          <MissionCard
+            mission={item}
+            onPress={() => navigation.navigate('MissionDetail', { missionId: item.id })}
+          />
         )}
         contentContainerStyle={styles.list}
       />
@@ -69,16 +62,10 @@ export default function HomeScreen() {
   );
 }
 
-function MissionCard({
-  mission,
-  onToggle,
-}: {
-  mission: Mission;
-  onToggle: () => void;
-}) {
+function MissionCard({ mission, onPress }: { mission: Mission; onPress: () => void }) {
   const { t } = useTranslation();
   return (
-    <Pressable style={styles.card} onPress={onToggle}>
+    <Pressable style={styles.card} onPress={onPress}>
       <Text style={styles.title}>{mission.title}</Text>
       <Text style={styles.description}>{mission.description}</Text>
       <View style={styles.statusRow}>
@@ -93,6 +80,7 @@ function MissionCard({
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fafafa' },
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -129,5 +117,4 @@ const styles = StyleSheet.create({
   },
   completed: { color: '#2e7d32', fontWeight: '600' },
   pending: { color: '#b8860b', fontWeight: '600' },
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 });
